@@ -2,7 +2,7 @@ package test
 
 import (
 	"github.com/mrbarge/aoc2024-golang/helper"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

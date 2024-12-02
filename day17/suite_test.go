@@ -8,5 +8,5 @@ import (
 
 func TestHelper(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Day01 Suite")
+	RunSpecs(t, "Day Test Suite")
 }
