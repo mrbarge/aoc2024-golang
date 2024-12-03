@@ -14,14 +14,17 @@ func inRange(i int, j int) bool {
 }
 
 func lineSafe(line []int) bool {
-	dirCount := make(map[bool]int)
+	ascending := line[0] < line[1]
 	for i := 1; i < len(line); i++ {
 		if !inRange(line[i-1], line[i]) {
 			return false
 		}
-		dirCount[line[i] > line[i-1]]++
+		if (ascending && line[i] < line[i-1]) ||
+			(!ascending && line[i] > line[i-1]) {
+			return false
+		}
 	}
-	return !(dirCount[true] > 0 && dirCount[false] > 0)
+	return true
 }
 
 func partone(lines [][]int) (r int, err error) {
@@ -49,9 +52,8 @@ func permissive_line_safe(line []int) bool {
 
 func parttwo(lines [][]int) (r int, err error) {
 	numSafe := 0
-	for i, line := range lines {
+	for _, line := range lines {
 		if permissive_line_safe(line) {
-			fmt.Printf("Line %v safe: %v\n", i, line)
 			numSafe++
 		}
 	}
