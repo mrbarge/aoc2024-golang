@@ -11,10 +11,14 @@ type Coord struct {
 }
 
 const (
-	NORTH = iota
-	EAST  = iota
-	SOUTH = iota
-	WEST  = iota
+	NORTH     = iota
+	EAST      = iota
+	SOUTH     = iota
+	WEST      = iota
+	NORTHWEST = iota
+	SOUTHWEST = iota
+	NORTHEAST = iota
+	SOUTHEAST = iota
 )
 
 // Return all coordinate neighbours
@@ -58,6 +62,14 @@ func (c Coord) MoveDirection(dir int) Coord {
 		return Coord{X: c.X - 1, Y: c.Y}
 	case SOUTH:
 		return Coord{X: c.X, Y: c.Y + 1}
+	case NORTHWEST:
+		return Coord{X: c.X - 1, Y: c.Y - 1}
+	case NORTHEAST:
+		return Coord{X: c.X + 1, Y: c.Y - 1}
+	case SOUTHWEST:
+		return Coord{X: c.X - 1, Y: c.Y + 1}
+	case SOUTHEAST:
+		return Coord{X: c.X + 1, Y: c.Y + 1}
 	}
 	return c
 }
@@ -73,8 +85,24 @@ func (c Coord) Move(dir int) Coord {
 		r.X -= 1
 	case SOUTH:
 		r.Y += 1
+	case NORTHWEST:
+		r.Y -= 1
+		r.X -= 1
+	case NORTHEAST:
+		r.Y -= 1
+		r.X += 1
+	case SOUTHWEST:
+		r.Y += 1
+		r.X -= 1
+	case SOUTHEAST:
+		r.Y += 1
+		r.X += 1
 	}
 	return r
+}
+
+func (c Coord) IsValid(sizex int, sizey int) bool {
+	return !(c.X < 0 || c.X >= sizex || c.Y < 0 || c.Y >= sizey)
 }
 
 func (c Coord) GetOrderedSquare() []Coord {
