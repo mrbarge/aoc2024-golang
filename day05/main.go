@@ -17,23 +17,6 @@ type Page struct {
 }
 
 func (p *Page) Before(pageId int, seen []int) bool {
-	if p.Id == pageId {
-		return true
-	}
-	if slices.Contains(seen, p.Id) {
-		return false
-	}
-	seen = append(seen, p.Id)
-	for _, v := range p.SmallerThan {
-		if v.Before(pageId, seen) {
-			fmt.Printf("Found %v in %v:Before\n", v.Id, p.Id)
-			return true
-		}
-	}
-	return false
-}
-
-func (p *Page) Before2(pageId int, seen []int) bool {
 	if slices.Contains(seen, p.Id) {
 		return false
 	}
@@ -71,23 +54,6 @@ func (p *Page) IsBiggerThan(pageId int, seen []int) bool {
 		}
 	}
 	return true
-}
-
-func (p *Page) After(pageId int, seen []int) bool {
-	if p.Id == pageId {
-		return true
-	}
-	if slices.Contains(seen, p.Id) {
-		return false
-	}
-	seen = append(seen, p.Id)
-	for _, v := range p.BiggerThan {
-		if v.After(pageId, seen) {
-			//fmt.Printf("Found %v in %v:After\n", pageId, p.Id)
-			return true
-		}
-	}
-	return false
 }
 
 func read_data(lines []string) (map[int]*Page, [][]int) {
@@ -132,7 +98,7 @@ func read_data(lines []string) (map[int]*Page, [][]int) {
 func validate_update(pages map[int]*Page, update []int) (bool, int) {
 	for i, pageId := range update[:len(update)-1] {
 		nextPage := update[i+1]
-		if !pages[pageId].Before2(pages[nextPage].Id, []int{}) {
+		if !pages[pageId].Before(pages[nextPage].Id, []int{}) {
 			return false, i
 		}
 	}
