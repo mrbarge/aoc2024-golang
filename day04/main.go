@@ -22,7 +22,7 @@ func input_to_runes(input []string) (r [][]rune) {
 
 func isMas(c helper.Coord, data [][]rune) bool {
 
-	move_pairs := [][]int{
+	move_pairs := [][]helper.Direction{
 		{helper.NORTHWEST, helper.SOUTHEAST},
 		{helper.NORTHEAST, helper.SOUTHWEST},
 	}
@@ -47,7 +47,7 @@ func isMas(c helper.Coord, data [][]rune) bool {
 func countXmas(c helper.Coord, data [][]rune) (r int) {
 	xmas := []rune{'M', 'A', 'S'}
 
-	move_funcs := []int{
+	move_funcs := []helper.Direction{
 		helper.NORTH, helper.SOUTH, helper.EAST, helper.WEST, helper.NORTHWEST, helper.NORTHEAST, helper.SOUTHWEST, helper.SOUTHEAST,
 	}
 

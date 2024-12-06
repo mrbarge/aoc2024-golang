@@ -10,15 +10,17 @@ type Coord struct {
 	Y int
 }
 
+type Direction int
+
 const (
-	NORTH     = iota
-	EAST      = iota
-	SOUTH     = iota
-	WEST      = iota
-	NORTHWEST = iota
-	SOUTHWEST = iota
-	NORTHEAST = iota
-	SOUTHEAST = iota
+	NORTH     Direction = iota
+	EAST                = iota
+	SOUTH               = iota
+	WEST                = iota
+	NORTHWEST           = iota
+	SOUTHWEST           = iota
+	NORTHEAST           = iota
+	SOUTHEAST           = iota
 )
 
 // Return all coordinate neighbours
@@ -40,6 +42,39 @@ func (c Coord) GetNeighbours(diagonal bool) []Coord {
 	return ret
 }
 
+func (d Direction) TurnClockwise() Direction {
+	switch d {
+	case NORTH:
+		return EAST
+	case EAST:
+
+		return SOUTH
+	case WEST:
+		return NORTH
+	case SOUTH:
+
+		return WEST
+	default:
+		return d
+	}
+}
+
+func (d Direction) TurnAntiClockwise() Direction {
+	switch d {
+	case NORTH:
+		return WEST
+	case EAST:
+		return NORTH
+	case WEST:
+		return SOUTH
+	case SOUTH:
+
+		return EAST
+	default:
+		return d
+	}
+}
+
 func (c Coord) GetSafeNeighbours(diagonal bool, xlen int, ylen int) []Coord {
 	n := c.GetNeighbours(diagonal)
 	r := make([]Coord, 0)
@@ -52,7 +87,7 @@ func (c Coord) GetSafeNeighbours(diagonal bool, xlen int, ylen int) []Coord {
 	return r
 }
 
-func (c Coord) MoveDirection(dir int) Coord {
+func (c Coord) MoveDirection(dir Direction) Coord {
 	switch dir {
 	case NORTH:
 		return Coord{X: c.X, Y: c.Y - 1}
@@ -74,7 +109,7 @@ func (c Coord) MoveDirection(dir int) Coord {
 	return c
 }
 
-func (c Coord) Move(dir int) Coord {
+func (c Coord) Move(dir Direction) Coord {
 	r := c
 	switch dir {
 	case NORTH:
