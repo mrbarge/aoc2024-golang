@@ -42,6 +42,22 @@ func (c Coord) GetNeighbours(diagonal bool) []Coord {
 	return ret
 }
 
+func (c Coord) GetNeighboursAsMap(diagonal bool) map[Direction]Coord {
+	ret := map[Direction]Coord{
+		WEST:  Coord{c.X - 1, c.Y},
+		NORTH: Coord{c.X, c.Y - 1},
+		SOUTH: Coord{c.X, c.Y + 1},
+		EAST:  Coord{c.X + 1, c.Y},
+	}
+	if diagonal {
+		ret[SOUTHWEST] = Coord{c.X - 1, c.Y + 1}
+		ret[NORTHWEST] = Coord{c.X - 1, c.Y - 1}
+		ret[SOUTHEAST] = Coord{c.X + 1, c.Y + 1}
+		ret[NORTHEAST] = Coord{c.X + 1, c.Y - 1}
+	}
+	return ret
+}
+
 func (d Direction) TurnClockwise() Direction {
 	switch d {
 	case NORTH:
