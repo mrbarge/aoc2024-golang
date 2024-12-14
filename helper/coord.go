@@ -3,6 +3,8 @@ package helper
 import (
 	"fmt"
 	"math"
+	"strconv"
+	"strings"
 )
 
 type Coord struct {
@@ -125,6 +127,28 @@ func (c Coord) MoveDirection(dir Direction) Coord {
 	return c
 }
 
+func (c Coord) MoveWithVelocity(vel Coord) Coord {
+	return Coord{
+		X: c.X + vel.X,
+		Y: c.Y + vel.Y,
+	}
+}
+
+func (c Coord) MoveGridWithVelocity(vel Coord, sizex int, sizey int) Coord {
+	newx := (c.X + vel.X) % sizex
+	if newx < 0 {
+		newx += sizex
+	}
+	newy := (c.Y + vel.Y) % sizey
+	if newy < 0 {
+		newy += sizey
+	}
+	return Coord{
+		X: newx,
+		Y: newy,
+	}
+}
+
 func (c Coord) Move(dir Direction) Coord {
 	r := c
 	switch dir {
@@ -200,6 +224,12 @@ func (c Coord) GetNeighboursPos(diagonal bool) []Coord {
 
 func (c Coord) ToString() string {
 	return fmt.Sprintf("%v,%v", c.X, c.Y)
+}
+
+func ParseCoord(s string) Coord {
+	x, _ := strconv.Atoi(strings.Split(s, ",")[0])
+	y, _ := strconv.Atoi(strings.Split(s, ",")[1])
+	return Coord{x, y}
 }
 
 func ManhattanDistance(c1 Coord, c2 Coord) int {
