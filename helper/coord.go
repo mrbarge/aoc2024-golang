@@ -93,6 +93,38 @@ func (d Direction) TurnAntiClockwise() Direction {
 	}
 }
 
+func (d Direction) Opposite() Direction {
+	switch d {
+	case NORTH:
+		return SOUTH
+	case EAST:
+		return WEST
+	case WEST:
+		return EAST
+	case SOUTH:
+
+		return NORTH
+	default:
+		return d
+	}
+}
+
+func (d Direction) String() string {
+	switch d {
+	case NORTH:
+		return "^ NORTH"
+	case EAST:
+		return "> EAST"
+	case WEST:
+		return "< WEST"
+	case SOUTH:
+
+		return "v SOUTH"
+	default:
+		return ""
+	}
+}
+
 func (c Coord) GetSafeNeighbours(diagonal bool, xlen int, ylen int) []Coord {
 	n := c.GetNeighbours(diagonal)
 	r := make([]Coord, 0)

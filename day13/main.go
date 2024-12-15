@@ -41,24 +41,25 @@ func readData(lines []string) []Machine {
 }
 
 func walk(pos helper.Coord, aturn int, bturn int, tokens int, m Machine) int {
+	if aturn > 100 || bturn > 100 {
+		fmt.Printf("max buttons hit\n")
+		return math.MaxInt
+	}
 	if pos == m.Prize {
+		//fmt.Printf("Success with tokens %v / a:%v, b:%v\n", tokens, aturn, bturn)
 		return tokens
+	}
+	if pos.X > m.Prize.X || pos.Y > m.Prize.Y {
+		return math.MaxInt
 	}
 	apos := helper.Coord{X: pos.X + m.A.X, Y: pos.Y + m.A.Y}
 	bpos := helper.Coord{X: pos.X + m.B.X, Y: pos.Y + m.B.Y}
 
-	var w1, w2 int = math.MaxInt, math.MaxInt
-	if aturn < 100 {
-		w1 = walk(apos, aturn+1, bturn, tokens+3, m)
-	}
-	if bturn < 100 {
-		w2 = walk(bpos, aturn, bturn+1, tokens+1, m)
-	}
-	if w1 < w2 {
-		return w1
-	} else {
-		return w2
-	}
+	b := 1
+	w1 := walk(apos, aturn+1, bturn, tokens+3, m)
+	w2 := walk(bpos, aturn, bturn+1, tokens+1, m)
+
+	return min(w1, w2)
 }
 
 func partone(lines []string) (r int, err error) {
