@@ -101,10 +101,6 @@ func (g *GameState) move() bool {
 		return false
 	}
 	instruction := g.instructions[g.tick]
-	//fmt.Printf("Moving: %v ", instruction.String())
-	//if g.tick < len(g.instructions)-1 {
-	//	fmt.Printf(" (next move is %v)\n", g.instructions[g.tick+1].String())
-	//}
 	canMove, movePos := g.canMove(instruction)
 	if canMove {
 		g.moveFromPos(*movePos, instruction.Opposite())
@@ -329,8 +325,8 @@ func parttwo(lines []string) (r int, err error) {
 	for i := 0; i < len(gamestate.instructions); i++ {
 		d := gamestate.instructions[i]
 		gamestate.MoveTwo(gamestate.robot, d)
-		//gamestate.Print(true)
 	}
+	gamestate.Print(true)
 	for _, box := range gamestate.boxes {
 		r += 100*box.left.Y + box.left.X
 	}

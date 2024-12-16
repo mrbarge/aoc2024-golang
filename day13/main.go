@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -40,49 +39,47 @@ func readData(lines []string) []Machine {
 	return r
 }
 
-func walk(pos helper.Coord, aturn int, bturn int, tokens int, m Machine) int {
-	if aturn > 100 || bturn > 100 {
-		fmt.Printf("max buttons hit\n")
-		return math.MaxInt
+// Based on https://old.reddit.com/r/adventofcode/comments/1hd4wda/2024_day_13_solutions/m27uwd9/
+// Can't take any credit for this one!
+func divMod(dividend, divisor int) (quotient, remainder int) {
+	if divisor == 0 {
+		panic("division by zero is not allowed")
 	}
-	if pos == m.Prize {
-		//fmt.Printf("Success with tokens %v / a:%v, b:%v\n", tokens, aturn, bturn)
-		return tokens
-	}
-	if pos.X > m.Prize.X || pos.Y > m.Prize.Y {
-		return math.MaxInt
-	}
-	apos := helper.Coord{X: pos.X + m.A.X, Y: pos.Y + m.A.Y}
-	bpos := helper.Coord{X: pos.X + m.B.X, Y: pos.Y + m.B.Y}
+	quotient = dividend / divisor
+	remainder = dividend % divisor
+	return
+}
 
-	b := 1
-	w1 := walk(apos, aturn+1, bturn, tokens+3, m)
-	w2 := walk(bpos, aturn, bturn+1, tokens+1, m)
-
-	return min(w1, w2)
+func minCost(ax, ay, bx, by, px, py int) int {
+	b, brem := divMod(ay*px-ax*py, ay*bx-ax*by)
+	a, arem := divMod(px-b*bx, ax)
+	if arem > 0 || brem > 0 {
+		return 0
+	} else {
+		return a*3 + b
+	}
 }
 
 func partone(lines []string) (r int, err error) {
 	machines := readData(lines)
 
-	for i, machine := range machines {
-		tokens := walk(helper.Coord{}, 0, 0, 0, machine)
-		if tokens == math.MaxInt {
-			fmt.Printf("Couldn't solve machine %v\n", i)
-		} else {
-			fmt.Printf("Machine %v tokens %v\n", i, tokens)
-		}
+	for _, machine := range machines {
+		r += minCost(machine.A.X, machine.A.Y, machine.B.X, machine.B.Y, machine.Prize.X, machine.Prize.Y)
 	}
-	return 0, nil
-
+	return r, nil
 }
 
 func parttwo(lines []string) (r int, err error) {
-	return 0, nil
+	machines := readData(lines)
+
+	for _, machine := range machines {
+		r += minCost(machine.A.X, machine.A.Y, machine.B.X, machine.B.Y, 10000000000000+machine.Prize.X, 10000000000000+machine.Prize.Y)
+	}
+	return r, nil
 }
 
 func main() {
-	fh, _ := os.Open("test.txt")
+	fh, _ := os.Open("input.txt")
 	lines, err := helper.ReadLines(fh, true)
 	if err != nil {
 		fmt.Printf("Unable to read input: %v\n", err)

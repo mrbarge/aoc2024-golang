@@ -3,6 +3,7 @@ module github.com/mrbarge/aoc2024-golang
 go 1.23
 
 require (
+	github.com/emirpasic/gods v1.18.1
 	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/onsi/gomega v1.36.0
 )
