@@ -201,9 +201,10 @@ func parttwo(lines []string) (r int, err error) {
 	cpu := readData(lines)
 
 	testOutput := cpu.PrintProgram()
-	acounter := 1
+	acounter := 53437163
 	seen := make(map[string]struct{})
 	for {
+
 		trial := cpu.Clone()
 		trial.A = acounter
 
