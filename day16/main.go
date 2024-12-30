@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/emirpasic/gods/queues/priorityqueue"
 	"github.com/mrbarge/aoc2024-golang/helper"
+	"math"
 	"os"
+	"strings"
 )
 
 type ProblemState struct {
@@ -16,8 +18,13 @@ type ProblemState struct {
 type Walk struct {
 	pos  helper.Coord
 	dir  helper.Direction
-	path map[helper.Coord]int
 	cost int
+	path []helper.Coord
+}
+
+type SimpleWalk struct {
+	pos helper.Coord
+	dir helper.Direction
 }
 
 // Comparator function
@@ -55,13 +62,12 @@ func isTurn(facing helper.Direction, walking helper.Direction) bool {
 	return facing != walking
 }
 
-func simulate(state ProblemState) (int, map[helper.Coord]int) {
+func simulate(state ProblemState) int {
 	priorityQueue := priorityqueue.NewWith(byCost)
 
 	priorityQueue.Enqueue(Walk{
 		pos:  state.start,
 		dir:  helper.EAST,
-		path: make(map[helper.Coord]int),
 		cost: 0,
 	})
 
@@ -79,12 +85,9 @@ func simulate(state ProblemState) (int, map[helper.Coord]int) {
 			}
 		}
 
-		// Add to the path
-		walk.path[walk.pos] = walk.cost
-
 		if walk.pos == state.end {
 			// We arrived as quickly as we could
-			return walk.cost, walk.path
+			return walk.cost
 		}
 
 		nextSteps := getNextSteps(walk, state, seen)
@@ -94,21 +97,97 @@ func simulate(state ProblemState) (int, map[helper.Coord]int) {
 
 		seen[walk.pos] = walk.dir
 	}
-	return -1, nil
+	return -1
 }
 
-func simulateTwo(state ProblemState) (int, int) {
+func canVisit(w SimpleWalk, cost int, seen map[SimpleWalk]int) bool {
+	if _, ok := seen[w]; ok {
+		if seen[w] < cost {
+			return false
+		}
+	}
+	seen[w] = cost
+	return true
+}
+
+func simulateTwo(state ProblemState) int {
 	priorityQueue := priorityqueue.NewWith(byCost)
 
 	priorityQueue.Enqueue(Walk{
 		pos:  state.start,
 		dir:  helper.EAST,
-		path: make(map[helper.Coord]int),
 		cost: 0,
+		path: []helper.Coord{state.start},
 	})
 
-	return 0, 0
+	lowestCost := math.MaxInt
+
+	seen := make(map[SimpleWalk]int)
+	winning := make(map[helper.Coord]bool)
+	for !priorityQueue.Empty() {
+		elem, _ := priorityQueue.Dequeue()
+		walk := elem.(Walk)
+
+		if lowestCost < walk.cost {
+			break
+		}
+
+		if walk.pos == state.end {
+			lowestCost = walk.cost
+			for _, v := range walk.path {
+				winning[v] = true
+			}
+			continue
+		}
+
+		if !canVisit(SimpleWalk{pos: walk.pos, dir: walk.dir}, walk.cost, seen) {
+			continue
+		}
+
+		forward := walk.pos.Move(walk.dir)
+		newpath := make([]helper.Coord, len(walk.path))
+		copy(newpath, walk.path)
+		newpath = append(newpath, forward)
+		if state.grid[forward.Y][forward.X] && canVisit(SimpleWalk{pos: forward, dir: walk.dir}, walk.cost+1, seen) {
+			priorityQueue.Enqueue(Walk{
+				pos:  forward,
+				dir:  walk.dir,
+				cost: walk.cost + 1,
+				path: newpath,
+			})
+		}
+
+		l := SimpleWalk{
+			pos: walk.pos,
+			dir: walk.dir.TurnAntiClockwise(),
+		}
+		r := SimpleWalk{
+			pos: walk.pos,
+			dir: walk.dir.TurnClockwise(),
+		}
+		for _, md := range []SimpleWalk{l, r} {
+			if canVisit(md, walk.cost+1000, seen) {
+				priorityQueue.Enqueue(Walk{
+					pos:  md.pos,
+					dir:  md.dir,
+					cost: walk.cost + 1000,
+					path: walk.path,
+				})
+			}
+		}
+	}
+
+	return len(winning)
 }
+
+func pathToKey(a []helper.Coord) string {
+	as := make([]string, 0)
+	for _, v := range a {
+		as = append(as, v.ToString())
+	}
+	return strings.Join(as, ":")
+}
+
 func getNextSteps(walk Walk, state ProblemState, seen map[helper.Coord]helper.Direction) []Walk {
 
 	nextSteps := make([]Walk, 0)
@@ -134,34 +213,31 @@ func getNextSteps(walk Walk, state ProblemState, seen map[helper.Coord]helper.Di
 		if turning {
 			turnCost += 1000
 		}
+		newpath := make([]helper.Coord, 0)
+		for _, v := range walk.path {
+			newpath = append(newpath, v)
+		}
+		newpath = append(newpath, neighbour)
 		nextSteps = append(nextSteps, Walk{
 			pos:  neighbour,
 			dir:  ndir,
-			path: copyPath(walk.path),
 			cost: walk.cost + turnCost,
+			path: newpath,
 		})
 	}
 	return nextSteps
 }
 
-func copyPath(path map[helper.Coord]int) (r map[helper.Coord]int) {
-	r = make(map[helper.Coord]int)
-	for i, v := range path {
-		r[i] = v
-	}
-	return r
-}
-
 func partone(lines []string) (r int, err error) {
 	state := readData(lines)
-	r, _ = simulate(state)
+	r = simulate(state)
 	return r, nil
 }
 
 func parttwo(lines []string) (r int, err error) {
 	state := readData(lines)
-	_, tiles := simulateTwo(state)
-	return tiles, nil
+	r = simulateTwo(state)
+	return r, nil
 }
 
 func main() {
