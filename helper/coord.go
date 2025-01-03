@@ -227,6 +227,19 @@ func (c Coord) GetOrderedSquare() []Coord {
 	return ret
 }
 
+func (c Coord) Direction(i Coord) Direction {
+	// Return which direction the supplied coordinate is in relation to this coord
+	if c.X < i.X {
+		return EAST
+	} else if c.X > i.X {
+		return WEST
+	} else if c.Y < i.Y {
+		return SOUTH
+	} else {
+		return NORTH
+	}
+}
+
 // Return all coordinate neighbours, excluding negatives
 func (c Coord) GetNeighboursPos(diagonal bool) []Coord {
 	ret := make([]Coord, 0)
