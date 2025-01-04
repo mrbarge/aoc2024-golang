@@ -23,6 +23,7 @@ const (
 	SOUTHWEST           = iota
 	NORTHEAST           = iota
 	SOUTHEAST           = iota
+	NONE
 )
 
 // Return all coordinate neighbours
@@ -112,14 +113,18 @@ func (d Direction) Opposite() Direction {
 func (d Direction) String() string {
 	switch d {
 	case NORTH:
-		return "^ NORTH"
+		return "^"
 	case EAST:
-		return "> EAST"
+		return ">"
 	case WEST:
-		return "< WEST"
+		return "<"
 	case SOUTH:
 
-		return "v SOUTH"
+		return "v"
+	case NORTHEAST:
+		return "A"
+	case NONE:
+		return "A"
 	default:
 		return ""
 	}
@@ -268,6 +273,9 @@ func (c Coord) GetNeighboursPos(diagonal bool) []Coord {
 }
 
 func (c Coord) ToString() string {
+	return fmt.Sprintf("%v,%v", c.X, c.Y)
+}
+func (c Coord) String() string {
 	return fmt.Sprintf("%v,%v", c.X, c.Y)
 }
 

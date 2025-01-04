@@ -2,29 +2,56 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/albertorestifo/dijkstra"
 	"github.com/mrbarge/aoc2024-golang/helper"
 )
 
-type WorldState struct {
-	numKeypad map[rune]helper.Coord
-	numpad    [][]bool
-	dirpad    [][]bool
-	dirKeypad map[helper.Direction]helper.Coord
-
-	numpadBot  helper.Coord
-	dirpadBot  helper.Coord
-	dirpadBot2 helper.Coord
-
+type NumpadBot struct {
+	pos         helper.Coord
 	numpadGraph dijkstra.Graph
+	numKeypad   map[rune]helper.Coord
+	numpad      [][]bool
+}
+
+type DirpadBot struct {
+	pos         helper.Coord
 	dirpadGraph dijkstra.Graph
+	dirpad      [][]bool
+	dirKeypad   map[helper.Direction]helper.Coord
+}
+
+func (n *NumpadBot) Move(r rune) []helper.Direction {
+	numpadPath, _, _ := n.numpadGraph.Path(n.pos.String(), n.numKeypad[r].String())
+	numpadDirections := pathToDirections(numpadPath)
+	// Got to press A at the end!
+	numpadDirections = append(numpadDirections, helper.NORTHEAST)
+	n.pos = n.numKeypad[r]
+	return numpadDirections
+}
+
+func (n *DirpadBot) Move(r helper.Direction) []helper.Direction {
+	dirpadPath, _, _ := n.dirpadGraph.Path(n.pos.String(), n.dirKeypad[r].String())
+	dirpadDirections := pathToDirections(dirpadPath)
+	// Got to press A at the end!
+	dirpadDirections = append(dirpadDirections, helper.NORTHEAST)
+	n.pos = n.dirKeypad[r]
+	return dirpadDirections
+}
+
+type WorldState struct {
+	numpadBot  *NumpadBot
+	dirpadBot  *DirpadBot
+	dirpadBot2 *DirpadBot
 }
 
 func readData(lines []string) WorldState {
 	w := WorldState{}
-	w.numKeypad = map[rune]helper.Coord{
+	numKeypad := map[rune]helper.Coord{
 		'7': helper.Coord{},
 		'8': helper.Coord{X: 1},
 		'9': helper.Coord{X: 2},
@@ -37,17 +64,17 @@ func readData(lines []string) WorldState {
 		'0': helper.Coord{X: 1, Y: 3},
 		'A': helper.Coord{X: 2, Y: 3},
 	}
-	w.numpad = [][]bool{
+	numpad := [][]bool{
 		{true, true, true},
 		{true, true, true},
 		{true, true, true},
 		{false, true, true},
 	}
-	w.dirpad = [][]bool{
+	dirpad := [][]bool{
 		{false, true, true},
 		{true, true, true},
 	}
-	w.dirKeypad = map[helper.Direction]helper.Coord{
+	dirKeypad := map[helper.Direction]helper.Coord{
 		helper.NORTH:     helper.Coord{X: 1},
 		helper.NORTHEAST: helper.Coord{X: 2},
 		helper.EAST:      helper.Coord{X: 2, Y: 1},
@@ -55,11 +82,25 @@ func readData(lines []string) WorldState {
 		helper.WEST:      helper.Coord{Y: 1},
 	}
 
-	w.numpadBot = helper.Coord{X: 2, Y: 3}
-	w.dirpadBot = helper.Coord{X: 2}
-	w.dirpadBot2 = helper.Coord{X: 2}
-	w.numpadGraph = padGraph(w.numpad)
-	w.dirpadGraph = padGraph(w.dirpad)
+	w.numpadBot = &NumpadBot{
+		pos:         helper.Coord{X: 2, Y: 3},
+		numpadGraph: padGraph(numpad),
+		numKeypad:   numKeypad,
+		numpad:      numpad,
+	}
+	w.dirpadBot = &DirpadBot{
+		pos:         helper.Coord{X: 2, Y: 0},
+		dirpadGraph: padGraph(dirpad),
+		dirpad:      dirpad,
+		dirKeypad:   dirKeypad,
+	}
+	w.dirpadBot2 = &DirpadBot{
+		pos:         helper.Coord{X: 2, Y: 0},
+		dirpadGraph: padGraph(dirpad),
+		dirpad:      dirpad,
+		dirKeypad:   dirKeypad,
+	}
+
 	return w
 }
 
@@ -73,13 +114,30 @@ func pathToDirections(path []string) []helper.Direction {
 	return r
 }
 
-func move(dest rune, w *WorldState) int {
+func move(dest rune, w *WorldState) []helper.Direction {
 
-	// First we need to figure out the shortest path for the numpad robot
-	fmt.Printf("Moving from %v to %v\n", w.numpadBot.ToString(), w.numKeypad[dest].ToString())
-	numpadPath, _, _ := w.numpadGraph.Path(w.numpadBot.ToString(), w.numKeypad[dest].ToString())
-	fmt.Printf("%v\n", pathToDirections(numpadPath))
-	return 0
+	allDirs := make([]helper.Direction, 0)
+
+	// Find the directions that the dirpad bot needs to push
+	numpadDirs := w.numpadBot.Move(dest)
+
+	for _, numpadDir := range numpadDirs {
+
+		// for each direction numpad bot must move, dirpad bot must:
+		// - press that direction button
+		// - press 'A'
+
+		// Find the directions that bot 2 needs to push to move bot1
+		b1DirPadDirs := w.dirpadBot.Move(numpadDir)
+		b1Dirs := append([]helper.Direction{}, b1DirPadDirs...)
+
+		for _, b1Dir := range b1Dirs {
+			b2DirPadDirs := w.dirpadBot2.Move(b1Dir)
+			allDirs = append(allDirs, b2DirPadDirs...)
+		}
+	}
+
+	return allDirs
 }
 
 func padGraph(grid [][]bool) dijkstra.Graph {
@@ -109,16 +167,47 @@ func padGraph(grid [][]bool) dijkstra.Graph {
 	return g
 }
 
+func (w *WorldState) Reset() {
+	w.dirpadBot2.pos = helper.Coord{X: 2}
+	w.dirpadBot.pos = helper.Coord{X: 2}
+	w.numpadBot.pos = helper.Coord{X: 2, Y: 3}
+}
+
+func simulate(code string, w *WorldState) int {
+	allMoves := make([]helper.Direction, 0)
+	for _, n := range code {
+		moves := move(n, w)
+		allMoves = append(allMoves, moves...)
+	}
+	return len(allMoves)
+}
+
+func simulateForSmallest(code string, w *WorldState) int {
+	m := math.MaxInt
+	for i := 0; i < 2000; i++ {
+		l := simulate(code, w)
+		if l < m {
+			m = l
+		}
+		w.Reset()
+	}
+	return m
+}
+
+func getNumeric(code string) int {
+	newCode := strings.Replace(code, "A", "", -1)
+	codeNum, _ := strconv.Atoi(newCode)
+	return codeNum
+}
+
 func partone(lines []string) (r int, err error) {
 	worldstate := readData(lines)
 
 	for _, line := range lines {
-		for _, v := range line {
-			moves := move(v, &worldstate)
-			fmt.Printf("Moves for %v: %v\n", v, moves)
-		}
+		pathlen := simulateForSmallest(line, &worldstate)
+		r += pathlen * getNumeric(line)
 	}
-	return 0, nil
+	return r, nil
 }
 
 func parttwo(lines []string) (r int, err error) {
@@ -126,7 +215,7 @@ func parttwo(lines []string) (r int, err error) {
 }
 
 func main() {
-	fh, _ := os.Open("test.txt")
+	fh, _ := os.Open("input.txt")
 	lines, err := helper.ReadLines(fh, true)
 	if err != nil {
 		fmt.Printf("Unable to read input: %v\n", err)
