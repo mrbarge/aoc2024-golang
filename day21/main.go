@@ -57,7 +57,7 @@ func (w *WorldState) PrecalculateNumpad() map[rune]map[rune][]helper.Direction {
 			if _, ok := r[from]; !ok {
 				r[from] = make(map[rune][]helper.Direction)
 			}
-			r[from][to] = optimizePath(shortest)
+			r[from][to] = shortest
 		}
 	}
 	return r
@@ -75,7 +75,7 @@ func (w *WorldState) PrecalculateDirpad() map[helper.Direction]map[helper.Direct
 			if _, ok := r[from]; !ok {
 				r[from] = make(map[helper.Direction][]helper.Direction)
 			}
-			r[from][to] = optimizePath(shortest)
+			r[from][to] = shortest
 		}
 	}
 	return r
@@ -342,17 +342,22 @@ func dirPathLength(dirs []helper.Direction, robot int, seen map[string]int, w *W
 }
 
 func parttwo(lines []string) (r int, err error) {
-	worldstate := readData(lines)
-
 	for _, line := range lines {
-		pathlen := numPadLength(line, 3, &worldstate)
+		pathlen := math.MaxInt
+		for i := 0; i < 5000; i++ {
+			worldstate := readData(lines)
+			m := numPadLength(line, 25, &worldstate)
+			if m < pathlen {
+				pathlen = m
+			}
+		}
 		r += pathlen * getNumeric(line)
 	}
 	return r, nil
 }
 
 func main() {
-	fh, _ := os.Open("test.txt")
+	fh, _ := os.Open("input.txt")
 	lines, err := helper.ReadLines(fh, true)
 	if err != nil {
 		fmt.Printf("Unable to read input: %v\n", err)
