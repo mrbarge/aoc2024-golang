@@ -4,12 +4,18 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/albertorestifo/dijkstra"
 	"github.com/mrbarge/aoc2024-golang/helper"
 )
+
+type SeenSequence struct {
+	sequence  []helper.Direction
+	iteration int
+}
 
 type NumpadBot struct {
 	pos         helper.Coord
@@ -23,6 +29,76 @@ type DirpadBot struct {
 	dirpadGraph dijkstra.Graph
 	dirpad      [][]bool
 	dirKeypad   map[helper.Direction]helper.Coord
+}
+
+type WorldState struct {
+	numpadBot  *NumpadBot
+	dirpadBot  *DirpadBot
+	dirpadBot2 *DirpadBot
+
+	numKeypad map[rune]helper.Coord
+	numpad    [][]bool
+	dirpad    [][]bool
+	dirKeypad map[helper.Direction]helper.Coord
+
+	numpadPaths map[rune]map[rune][]helper.Direction
+	dirpadPaths map[helper.Direction]map[helper.Direction][]helper.Direction
+}
+
+func (w *WorldState) PrecalculateNumpad() map[rune]map[rune][]helper.Direction {
+	values := []rune{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A'}
+
+	r := make(map[rune]map[rune][]helper.Direction)
+	for i := 0; i < len(values); i++ {
+		for j := 0; j < len(values); j++ {
+			from := values[i]
+			to := values[j]
+			shortest := w.numpadBot.MoveToFrom(from, to)
+			if _, ok := r[from]; !ok {
+				r[from] = make(map[rune][]helper.Direction)
+			}
+			r[from][to] = optimizePath(shortest)
+		}
+	}
+	return r
+}
+
+func (w *WorldState) PrecalculateDirpad() map[helper.Direction]map[helper.Direction][]helper.Direction {
+	values := []helper.Direction{helper.WEST, helper.NORTHEAST, helper.NORTH, helper.SOUTH, helper.EAST}
+
+	r := make(map[helper.Direction]map[helper.Direction][]helper.Direction)
+	for i := 0; i < len(values); i++ {
+		for j := 0; j < len(values); j++ {
+			from := values[i]
+			to := values[j]
+			shortest := w.dirpadBot.MoveToFrom(from, to)
+			if _, ok := r[from]; !ok {
+				r[from] = make(map[helper.Direction][]helper.Direction)
+			}
+			r[from][to] = optimizePath(shortest)
+		}
+	}
+	return r
+}
+
+func (n *NumpadBot) MoveToFrom(from rune, to rune) []helper.Direction {
+	fromPos := n.numKeypad[from]
+	toPos := n.numKeypad[to]
+	numpadPath, _, _ := n.numpadGraph.Path(fromPos.String(), toPos.String())
+	numpadDirections := pathToDirections(numpadPath)
+	// Got to press A at the end!
+	numpadDirections = append(numpadDirections, helper.NORTHEAST)
+	return numpadDirections
+}
+
+func (n *DirpadBot) MoveToFrom(from helper.Direction, to helper.Direction) []helper.Direction {
+	fromPos := n.dirKeypad[from]
+	toPos := n.dirKeypad[to]
+	numpadPath, _, _ := n.dirpadGraph.Path(fromPos.String(), toPos.String())
+	numpadDirections := pathToDirections(numpadPath)
+	// Got to press A at the end!
+	numpadDirections = append(numpadDirections, helper.NORTHEAST)
+	return numpadDirections
 }
 
 func (n *NumpadBot) Move(r rune) []helper.Direction {
@@ -43,15 +119,26 @@ func (n *DirpadBot) Move(r helper.Direction) []helper.Direction {
 	return dirpadDirections
 }
 
-type WorldState struct {
-	numpadBot  *NumpadBot
-	dirpadBot  *DirpadBot
-	dirpadBot2 *DirpadBot
+func optimizePath(d []helper.Direction) []helper.Direction {
+	order := map[helper.Direction]int{
+		helper.WEST:      0,
+		helper.SOUTH:     1,
+		helper.NORTH:     2,
+		helper.EAST:      3,
+		helper.NORTHEAST: 4,
+	}
+
+	// Sort the slice using the custom order
+	sort.Slice(d, func(i, j int) bool {
+		return order[d[i]] < order[d[j]]
+	})
+
+	return d
 }
 
 func readData(lines []string) WorldState {
 	w := WorldState{}
-	numKeypad := map[rune]helper.Coord{
+	w.numKeypad = map[rune]helper.Coord{
 		'7': helper.Coord{},
 		'8': helper.Coord{X: 1},
 		'9': helper.Coord{X: 2},
@@ -64,17 +151,17 @@ func readData(lines []string) WorldState {
 		'0': helper.Coord{X: 1, Y: 3},
 		'A': helper.Coord{X: 2, Y: 3},
 	}
-	numpad := [][]bool{
+	w.numpad = [][]bool{
 		{true, true, true},
 		{true, true, true},
 		{true, true, true},
 		{false, true, true},
 	}
-	dirpad := [][]bool{
+	w.dirpad = [][]bool{
 		{false, true, true},
 		{true, true, true},
 	}
-	dirKeypad := map[helper.Direction]helper.Coord{
+	w.dirKeypad = map[helper.Direction]helper.Coord{
 		helper.NORTH:     helper.Coord{X: 1},
 		helper.NORTHEAST: helper.Coord{X: 2},
 		helper.EAST:      helper.Coord{X: 2, Y: 1},
@@ -84,22 +171,24 @@ func readData(lines []string) WorldState {
 
 	w.numpadBot = &NumpadBot{
 		pos:         helper.Coord{X: 2, Y: 3},
-		numpadGraph: padGraph(numpad),
-		numKeypad:   numKeypad,
-		numpad:      numpad,
+		numpadGraph: padGraph(w.numpad),
+		numKeypad:   w.numKeypad,
+		numpad:      w.numpad,
 	}
 	w.dirpadBot = &DirpadBot{
 		pos:         helper.Coord{X: 2, Y: 0},
-		dirpadGraph: padGraph(dirpad),
-		dirpad:      dirpad,
-		dirKeypad:   dirKeypad,
+		dirpadGraph: padGraph(w.dirpad),
+		dirpad:      w.dirpad,
+		dirKeypad:   w.dirKeypad,
 	}
 	w.dirpadBot2 = &DirpadBot{
 		pos:         helper.Coord{X: 2, Y: 0},
-		dirpadGraph: padGraph(dirpad),
-		dirpad:      dirpad,
-		dirKeypad:   dirKeypad,
+		dirpadGraph: padGraph(w.dirpad),
+		dirpad:      w.dirpad,
+		dirKeypad:   w.dirKeypad,
 	}
+	w.numpadPaths = w.PrecalculateNumpad()
+	w.dirpadPaths = w.PrecalculateDirpad()
 
 	return w
 }
@@ -210,12 +299,60 @@ func partone(lines []string) (r int, err error) {
 	return r, nil
 }
 
+func numPadLength(code string, robots int, w *WorldState) int {
+	numpadBot := 'A'
+	length := 0
+	seen := make(map[string]int)
+	for _, nextButton := range code {
+		dirpath := w.numpadPaths[numpadBot][nextButton]
+		res := dirPathLength(dirpath, robots, seen, w)
+		length += res
+		numpadBot = nextButton
+	}
+	return length
+}
+
+func makeKey(dirs []helper.Direction, robot int) string {
+	r := fmt.Sprintf("%v:", robot)
+	for _, v := range dirs {
+		r += fmt.Sprintf("%v", v)
+	}
+	return r
+}
+
+func dirPathLength(dirs []helper.Direction, robot int, seen map[string]int, w *WorldState) int {
+	if robot == 0 {
+		return len(dirs)
+	}
+	if _, ok := seen[makeKey(dirs, robot)]; ok {
+		return seen[makeKey(dirs, robot)]
+	}
+
+	length := 0
+	// All bots start at A
+	var dirpadBot helper.Direction = helper.NORTHEAST
+	for _, nextDir := range dirs {
+		dirpath := w.dirpadPaths[dirpadBot][nextDir]
+		res := dirPathLength(dirpath, robot-1, seen, w)
+		length += res
+		dirpadBot = nextDir
+	}
+	seen[makeKey(dirs, robot)] = length
+	return length
+}
+
 func parttwo(lines []string) (r int, err error) {
-	return 0, nil
+	worldstate := readData(lines)
+
+	for _, line := range lines {
+		pathlen := numPadLength(line, 3, &worldstate)
+		r += pathlen * getNumeric(line)
+	}
+	return r, nil
 }
 
 func main() {
-	fh, _ := os.Open("input.txt")
+	fh, _ := os.Open("test.txt")
 	lines, err := helper.ReadLines(fh, true)
 	if err != nil {
 		fmt.Printf("Unable to read input: %v\n", err)
